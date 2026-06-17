@@ -220,16 +220,30 @@ const pasta = path.dirname(path.resolve(__filename));
 const hoje  = new Date().toISOString().slice(0, 10);
 const saida = path.join(pasta, `yampi-randa-mundu-${hoje}.xlsx`);
 
-// Copia imagem principal para pasta de saída
+// Copia todas as imagens do produto (STILLs + LOOKBOOK) para pasta de saída
 const pastaImagens = path.join(pasta, `yampi-imagens-${hoje}`);
 let imagensCopiaadas = 0;
+
+const indexPath = path.join(pasta, 'drive-index.json');
+const driveIndex = fs.existsSync(indexPath)
+  ? JSON.parse(fs.readFileSync(indexPath, 'utf8').replace(/^﻿/, ''))
+  : {};
+
 produtos.forEach(p => {
-  const imgPath = p.link_foto_principal;
-  if (imgPath && fs.existsSync(imgPath)) {
-    if (!fs.existsSync(pastaImagens)) fs.mkdirSync(pastaImagens, { recursive: true });
-    fs.copyFileSync(imgPath, path.join(pastaImagens, path.basename(imgPath)));
-    imagensCopiaadas++;
-  }
+  const codigo = String(p.codigo_erp || '');
+  const entry  = driveIndex[codigo] || {};
+  const todas  = [...(entry.stills || []), ...(entry.lookbook || [])];
+
+  // Se não há índice, tenta pelo menos a foto principal
+  if (todas.length === 0 && p.link_foto_principal) todas.push(p.link_foto_principal);
+
+  todas.forEach(imgPath => {
+    if (imgPath && fs.existsSync(imgPath)) {
+      if (!fs.existsSync(pastaImagens)) fs.mkdirSync(pastaImagens, { recursive: true });
+      fs.copyFileSync(imgPath, path.join(pastaImagens, path.basename(imgPath)));
+      imagensCopiaadas++;
+    }
+  });
 });
 
 try {
