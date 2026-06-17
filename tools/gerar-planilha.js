@@ -186,9 +186,23 @@ const pasta  = path.dirname(path.resolve(__filename));
 const hoje   = new Date().toISOString().slice(0, 10);
 const saida  = path.join(pasta, `yampi-randa-mundu-${hoje}.xlsx`);
 
+// Copia imagens locais referenciadas em link_foto_principal para pasta de saída
+const pastaImagens = path.join(pasta, `yampi-imagens-${hoje}`);
+let imagensCopiaadas = 0;
+produtos.forEach(p => {
+  const imgPath = p.link_foto_principal;
+  if (imgPath && fs.existsSync(imgPath)) {
+    if (!fs.existsSync(pastaImagens)) fs.mkdirSync(pastaImagens, { recursive: true });
+    const dest = path.join(pastaImagens, path.basename(imgPath));
+    fs.copyFileSync(imgPath, dest);
+    imagensCopiaadas++;
+  }
+});
+
 try {
   buildXlsx(produtos, saida);
   console.log('SUCESSO: ' + saida);
+  if (imagensCopiaadas > 0) console.log(`IMAGENS: ${imagensCopiaadas} arquivo(s) copiado(s) para ${pastaImagens}`);
 } catch (err) {
   console.error('ERRO: ' + err.message);
   process.exit(1);
